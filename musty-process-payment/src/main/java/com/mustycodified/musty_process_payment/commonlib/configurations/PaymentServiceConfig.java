@@ -1,0 +1,20 @@
+package com.mustycodified.musty_process_payment.commonlib.configurations;
+
+
+import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import javax.sql.DataSource;
+
+@Configuration
+public class PaymentServiceConfig {
+    @Bean(name = "dataSource")
+    public DataSource dataSource() {
+        return DataSourceBuilder.create()
+                .driverClassName("org.postgresql.Driver")
+                .url("jdbc:postgresql://localhost:5432/payments_db")
+                .username("postgres")
+                .password("papi")
+                .build();
+    }
+}
