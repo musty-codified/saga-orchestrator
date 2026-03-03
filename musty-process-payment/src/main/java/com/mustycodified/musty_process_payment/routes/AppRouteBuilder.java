@@ -20,6 +20,9 @@ public class AppRouteBuilder extends RouteBuilder {
     @Value("${server.port:8080}")
     private int serverPort;
 
+    @Value("${camel.component.kafka.brokers}")
+    private String kafkaBrokerUrl;
+
     @Override
     public void configure() throws Exception {
         getContext().setStreamCaching(false);
@@ -74,7 +77,7 @@ public class AppRouteBuilder extends RouteBuilder {
         // Simulate Payment Gateway Timeout
         from("direct:payment-timeout")
                 .log(LoggingLevel.INFO, "Simulating timeout...")
-                .delay(10000) // Simulate a 10-second delay
+                .delay(10000)
                 .process(exchange -> {
                     exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, 504);
                     exchange.getIn().setBody(Map.of(
@@ -83,12 +86,12 @@ public class AppRouteBuilder extends RouteBuilder {
                     ));
                 });
 
-        from("kafka:PAYMENT_REQUEST_TOPIC?brokers=localhost:9092&groupId=payment-service")
+        from("kafka:PAYMENT_REQUEST_TOPIC?brokers="+kafkaBrokerUrl+"&groupId=payment-service")
                 .routeId("PaymentInitiatedEvent")
                 .process(exchange -> {
-                    UUID paymentId = UUID.randomUUID();
-                    exchange.getIn().setHeader("paymentId", paymentId);
-                    log.info("Generated Payment ID: {}", paymentId);
+                    UUID transactionReference = UUID.randomUUID();
+                    exchange.getIn().setHeader("transactionReference", transactionReference);
+                    log.info("Generated Transaction Reference: {}", transactionReference);
                     String orderId = exchange.getIn().getHeader("orderId", String.class);
                     String userId = exchange.getIn().getHeader("userId", String.class);
                     String amountStr = exchange.getIn().getHeader("totalPrice", String.class);
@@ -100,7 +103,7 @@ public class AppRouteBuilder extends RouteBuilder {
                     }
 
                     // Set headers Before SQL insertion
-                    exchange.getIn().setHeader("paymentId", paymentId);
+                    exchange.getIn().setHeader("transactionReference", transactionReference);
                     exchange.getIn().setHeader("orderId", orderId);
                     exchange.getIn().setHeader("userId", userId);
                     exchange.getIn().setHeader("amount", amount);
@@ -109,18 +112,18 @@ public class AppRouteBuilder extends RouteBuilder {
 
                 // Store payment transaction
                 .to("sql:INSERT INTO payments (payment_id, order_id, user_id, amount, status) " +
-                        "VALUES (CAST(:#paymentId AS UUID), CAST(:#orderId AS UUID), :#userId, :#amount, 'PENDING')?dataSource=#dataSource")
+                        "VALUES (CAST(:#transactionReference AS UUID), CAST(:#orderId AS UUID), :#userId, :#amount, 'PENDING')?dataSource=#dataSource")
 
                 // Call Mock Payment Gateway
                 .to("direct:payment-success")
                 .log(LoggingLevel.WARN, "Payment processing successful...")
 
                 // Update payment status in database
-                .to("sql:UPDATE payments SET status='SUCCESS' WHERE payment_id=:#paymentId")
+                .to("sql:UPDATE payments SET status='SUCCESS' WHERE payment_id=:#transactionReference")
                 .log("Raw message body: ${body}")
                 .marshal().json(JsonLibrary.Jackson)
                 // Emit payment status event
-                .to("kafka:PAYMENT_STATUS_TOPIC?brokers=localhost:9092");
+                .to("kafka:PAYMENT_STATUS_TOPIC?brokers=" + kafkaBrokerUrl);
 
     }
 

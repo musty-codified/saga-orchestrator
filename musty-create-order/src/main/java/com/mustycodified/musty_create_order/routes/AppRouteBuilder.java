@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
@@ -27,6 +28,9 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 public class AppRouteBuilder extends RouteBuilder {
     @Value("${server.port:8080}")
     private int serverPort;
+
+    @Value("${camel.component.kafka.brokers}")
+    private String kafkaBrokerUrl;
 
     @Override
     public void configure() throws Exception {
@@ -45,6 +49,11 @@ public class AppRouteBuilder extends RouteBuilder {
                 .end();
 
         onException(PSQLException.class)
+                    .maximumRedeliveries(3)
+                    .redeliveryDelay(1000)
+                     .logRetryAttempted(true)
+                      .useExponentialBackOff()
+                .retryAttemptedLogLevel(LoggingLevel.WARN)
                 .handled(true)
                 .process(exchange -> {
                     PSQLException exception = exchange.getProperty(Exchange.EXCEPTION_CAUGHT, PSQLException.class);
@@ -100,8 +109,9 @@ public class AppRouteBuilder extends RouteBuilder {
                     String orderId = exchange.getIn().getHeader("orderId", String.class);
                     String userId = exchange.getIn().getHeader("userId", String.class);
                     Integer variantProductId = exchange.getIn().getHeader("variantProductId", Integer.class);
-                    Integer totalPrice = exchange.getIn().getHeader("totalPrice", Integer.class);
+                    BigDecimal totalPrice = exchange.getIn().getHeader("totalPrice", BigDecimal.class);
                     Integer quantity = exchange.getIn().getHeader("quantity", Integer.class);
+                    //Build kafka message
                     Map<String, Object> kafkaMessage = Map.of(
                             "orderId", orderId,
                             "userId", userId,
@@ -111,25 +121,35 @@ public class AppRouteBuilder extends RouteBuilder {
                     );
                     exchange.getIn().setBody(kafkaMessage);
                 })
+
+                //marshall the message into JSON before sending over the network
                 .marshal().json(JsonLibrary.Jackson)
 
                 // Insert order record into Postgres
                 .to("sql:INSERT INTO orders (order_id, user_id, product_id, quantity, total_price, status) " +
                         "VALUES (:#orderId, :#userId, :#variantProductId, :#quantity, :#totalPrice, 'PENDING')?dataSource=#postgresDataSource&outputType=SelectList")
 
-                // Send order request to inventory check queue
-                .to("kafka:INVENTORY_CHECK_TOPIC?brokers=localhost:9092")
+                // Send order message to inventory check topic
+                .to("kafka:INVENTORY_CHECK_TOPIC?brokers="+kafkaBrokerUrl)
 
-                //    private Integer id;
-                //    private String uid;
-                //    private BigDecimal totalPrice;
-                //    private Integer quantity;
-                //    private String status;
-                //    Respond to user instantly
-                .setBody().constant(Map.of("message", "Order received", "status", "PENDING"))
+                .process(exchange -> {
+                    String orderId = exchange.getIn().getHeader("orderId", String.class);
+                    String userId = exchange.getIn().getHeader("userId", String.class);
+                    BigDecimal totalPrice = exchange.getIn().getHeader("totalPrice", BigDecimal.class);
+                    Integer quantity = exchange.getIn().getHeader("quantity", Integer.class);
+
+                    OrderResponse dto = new OrderResponse();
+                    dto.setId(orderId);
+                    dto.setUid(userId);
+                    dto.setQuantity(quantity);
+                    dto.setTotalPrice(totalPrice);
+                    dto.setStatus("PENDING");
+                    exchange.getIn().setBody(dto);
+                })
+
                 .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(202));
 
-        from("kafka:INVENTORY_CHECK_TOPIC?brokers=localhost:9092&groupId=inventory-service")
+        from("kafka:INVENTORY_CHECK_TOPIC?brokers="+kafkaBrokerUrl+"&groupId=inventory-service")
                 .routeId("inventory-service-route")
                 .unmarshal().json(JsonLibrary.Jackson, Map.class)
                 .process(exchange -> {
@@ -150,17 +170,18 @@ public class AppRouteBuilder extends RouteBuilder {
                 .log(LoggingLevel.INFO, "Product Exists: ${header.productExists}, Quantity: ${exchangeProperty.quantity}")
                 .choice()
                 .when(simple("${exchangeProperty.quantity} > 0"))
-                .log(LoggingLevel.INFO, "Product in stock! Triggering payment request...")
+                .log(LoggingLevel.INFO, "Product in stock! Trigger payment request...")
                 .process(exchange -> {
                     String orderId = exchange.getIn().getHeader("orderId", String.class);
                     String userId = exchange.getIn().getHeader("userId", String.class);
-                    String amountStr = exchange.getIn().getHeader("totalPrice", String.class);
-                    Integer amount = (amountStr != null && !amountStr.isEmpty()) ? Integer.parseInt(amountStr) : 0;
+                    BigDecimal amountStr = exchange.getIn().getHeader("totalPrice", BigDecimal.class);
+//                    Integer amount = (amountStr != null && !amountStr.isEmpty()) ? Integer.parseInt(amountStr) : 0;
+
                     // Set headers Before publishing Kafka Message to Payment consumer
                     exchange.getIn().setHeader("orderId", orderId);
                     exchange.getIn().setHeader("userId", userId);
                     exchange.getIn().setHeader("totalPrice", amountStr);
-                    log.info("Emitting Payment event for → orderId: {}, userId: {}, amount: {}", orderId, userId, amount);
+                    log.info("Emitting Payment event for → orderId: {}, userId: {}, amount: {}", orderId, userId, amountStr);
                 })
                 .to("kafka:PAYMENT_REQUEST_TOPIC?brokers=localhost:9092")
                 .otherwise()
@@ -168,7 +189,7 @@ public class AppRouteBuilder extends RouteBuilder {
                 .to("sql:UPDATE orders SET status='DECLINED' WHERE order_id = :#orderId?dataSource=#postgresDataSource")
                 .log(LoggingLevel.INFO, "Order DECLINED.");
 
-        from("kafka:PAYMENT_STATUS_TOPIC?brokers=localhost:9092&groupId=order-service")
+        from("kafka:PAYMENT_STATUS_TOPIC?brokers="+kafkaBrokerUrl+"&groupId=order-service")
                 .routeId("PaymentStatusUpdatedEvent")
                 .log(LoggingLevel.INFO, "Updating order status → Order ID: ${header.orderId}")
                 .process(exchange -> {

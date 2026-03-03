@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class KafkaConfig {
 
-    @Value("${camel.component.kafka.brokers:localhost:9092}")
+    @Value("${camel.component.kafka.brokers}")
     private String kafkaBrokerUrl;
 
     @Bean
@@ -23,4 +23,5 @@ public class KafkaConfig {
         context.addComponent("kafka", kafka);
         return kafka;
     }
+
 }

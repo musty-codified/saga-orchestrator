@@ -496,5 +496,6 @@
 				</executions>
 			</plugin>
 		</plugins>
+		<finalName>notification</finalName>
 	</build>
 </project>

@@ -2,7 +2,17 @@
 
 This project demonstrates a small, production-ish, event-driven system built with **Spring Boot + Apache Camel + Kafka** and multiple datastores (**PostgreSQL, MySQL, MongoDB**).
 
-It models a simple e-commerce flow:
+The project simulates a simplified order-to-payment workflow:
+
+### Key Technologies
+| Category | Stack |
+|-----------|--------|
+| Integration | Apache Camel |
+| Messaging | Apache Kafka |
+| Persistence | PostgreSQL (Orders, Payments), MySQL (Inventory), MongoDB Atlas (Notifications) |
+| Runtime | Spring Boot |
+| Logging | SLF4J + Camel |
+| Reliability | Idempotency, Retry, DLQ |
 
 1. **Order Service** (REST) receives an order → persists it as `PENDING` → publishes to Kafka (`INVENTORY_CHECK_TOPIC`)
 2. **Inventory Service** consumes the event → checks stock in MySQL →
@@ -37,3 +47,10 @@ See `/diagrams/architecture.drawio` for the visual.
     "quantity": 10,
     "totalPrice": 696
   }
+
+---
+
+## Architecture Diagram
+Create this in **draw.io / Excalidraw**:
+
+

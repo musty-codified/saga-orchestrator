@@ -7,14 +7,9 @@ import org.springframework.context.annotation.Configuration;
 import javax.sql.DataSource;
 
 @Configuration
-public class PaymentServiceConfig {
+public class DatabaseConfig {
     @Bean(name = "dataSource")
     public DataSource dataSource() {
-        return DataSourceBuilder.create()
-                .driverClassName("org.postgresql.Driver")
-                .url("jdbc:postgresql://localhost:5432/payments_db")
-                .username("postgres")
-                .password("papi")
-                .build();
+        return DataSourceBuilder.create().build();
     }
 }

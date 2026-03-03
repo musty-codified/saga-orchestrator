@@ -1,5 +1,6 @@
 package com.mustycodified.musty_create_order.commonlib.models;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,11 +11,13 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 public class RequestPayload implements Serializable {
-	/** Serial version */
 	@Serial
 	private static final long serialVersionUID = 7868310611900741033L;
 
+
+	@NotNull
 	private BigDecimal totalPrice;
+	@NotNull
 	private Integer quantity;
 
 	@Override

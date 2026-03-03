@@ -1,9 +1,9 @@
 package com.mustycodified.musty_create_order.commonlib.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 import java.math.BigDecimal;
 
@@ -11,10 +11,20 @@ import java.math.BigDecimal;
 @Setter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OrderResponse {
-    private Integer id;
+
+    @NotNull
+    private String id;
+
+    @NotNull
     private String uid;
+
+    @NotNull
     private BigDecimal totalPrice;
+
+    @NotNull
     private Integer quantity;
+
+    @NotNull
     private String status;
 
     @Override

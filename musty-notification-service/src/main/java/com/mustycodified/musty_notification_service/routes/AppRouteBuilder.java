@@ -55,7 +55,7 @@ public class AppRouteBuilder extends RouteBuilder {
                 .unmarshal().json(JsonLibrary.Jackson, Map.class)
                 // Insert notification logs in Mongo
                 .to("mongodb:mongoBean?database=notifications&collection=events&operation=insert")
-                // Notify user by calling external Mock Notification
+                // Notify user by calling email service
                 .to("direct:notification-success")
                 // Send order to ship service
                 .to("kafka:ORDER_SHIPPING_TOPIC");

@@ -21,12 +21,10 @@ public class OrderCreationProcessor implements Processor {
         if (userId == null || variantProductId == null) {
             throw new IllegalArgumentException("Missing required path parameters");
         }
-        if (totalPrice == null || quantity == null) {
-            throw new IllegalArgumentException("Request payload is required");
-        }
+
         exchange.getIn().setHeader("totalPrice", totalPrice);
         exchange.getIn().setHeader("quantity", quantity);
         exchange.getIn().setHeader("userId", userId);
-        exchange.getIn().setHeader("userId", userId);
+//        exchange.getIn().setHeader("userId", userId);
     }
 }
