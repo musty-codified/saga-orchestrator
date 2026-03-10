@@ -3,7 +3,9 @@ Microservices often require distributed transactions across multiple services.
 Traditional database transactions fail because:
 
 **services are independent**
+
 **network failures happen**
+
 **partial success must be compensated**
 
 Solution: implement the **Saga Pattern**.
@@ -47,24 +49,9 @@ docker compose ps
 ```
 
 ## Architecture
-Order Service
-     │
-     ▼
-Saga Orchestrator
-     │
-  ┌───────┬────────┬────────┐
-  ▼       ▼        ▼        ▼
-Payment Inventory Notification 
-Service Service Service 
-
 - **Pattern:** Choreographed, event-driven pipeline
 - **Transport:** Apache Kafka
 - **Orchestration:** Apache Camel routes in each microservice
-- **Persistence:**
-    - Orders → PostgreSQL
-    - Products / Stocks → MySQL
-    - Notifications / audit → MongoDB
----
 
 ## Services
 
@@ -80,8 +67,7 @@ Service Service Service
 ---
 
 ## Order Created (Sent to INVENTORY_CHECK_TOPIC)
-JSON
-```
+``` json
 {
   "orderId": "550e8400-e29b-41d4-a716-446655440000",
   "userId": "user_99",
@@ -92,7 +78,7 @@ JSON
 
 ```
 ## Payment Requested (Sent to PAYMENT_REQUEST_TOPIC)
-```
+``` json
 
 {
 "orderId": "550e8400-e29b-41d4-a716-446655440000",
