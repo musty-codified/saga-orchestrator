@@ -45,7 +45,7 @@ public class AppRouteBuilder extends RouteBuilder {
                 .corsAllowCredentials(true)
                 .enableCORS(true);
 
-        from("kafka:PAYMENT_STATUS_TOPIC")
+        from("kafka:PAYMENT_STATUS_TOPIC?brokers={{spring.kafka.bootstrap-servers}}")
                 .routeId("NotificationRequestedEvent")
                 .log(LoggingLevel.INFO, "Sending payment confirmation for OrderID: ${header.orderId}")
                 .process(exchange -> {

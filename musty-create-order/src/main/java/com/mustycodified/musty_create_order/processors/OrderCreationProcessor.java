@@ -25,6 +25,5 @@ public class OrderCreationProcessor implements Processor {
         exchange.getIn().setHeader("totalPrice", totalPrice);
         exchange.getIn().setHeader("quantity", quantity);
         exchange.getIn().setHeader("userId", userId);
-//        exchange.getIn().setHeader("userId", userId);
     }
 }

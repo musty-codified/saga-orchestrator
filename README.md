@@ -1,19 +1,23 @@
-# Async Event-Driven Order Pipeline
+# Problem
+Microservices often require distributed transactions across multiple services.
+Traditional database transactions fail because:
 
-This project demonstrates a small, production-ish, event-driven system built with **Spring Boot + Apache Camel + Kafka** and multiple datastores (**PostgreSQL, MySQL, MongoDB**).
+**services are independent**
+**network failures happen**
+**partial success must be compensated**
 
-The project simulates a simplified order-to-payment workflow:
+Solution: implement the **Saga Pattern**.
 
 ### Key Technologies
-| Category | Stack |
-|-----------|--------|
-| Integration | Apache Camel |
-| Messaging | Apache Kafka |
-| Persistence | PostgreSQL (Orders, Payments), MySQL (Inventory), MongoDB Atlas (Notifications) |
-| Runtime | Spring Boot |
-| Logging | SLF4J + Camel |
-| Reliability | Idempotency, Retry, DLQ |
+| Category | Stack                                                        |
+|-----------|--------------------------------------------------------------|
+| Integration | Apache Camel (v4.x)                                          |
+| Messaging | Apache Kafka                                                 |
+| Persistence | PostgreSQL (Orders), MySQL (Inventory), MongoDB (Notifications) |
+| Runtime | Spring Boot, Docker                                          |
+| Patterns | Idempotency, Saga Choreography, DLQ                          |
 
+### The Workflow:
 1. **Order Service** (REST) receives an order → persists it as `PENDING` → publishes to Kafka (`INVENTORY_CHECK_TOPIC`)
 2. **Inventory Service** consumes the event → checks stock in MySQL →
     - if in stock → publishes to `PAYMENT_REQUEST_TOPIC`
@@ -23,7 +27,35 @@ The project simulates a simplified order-to-payment workflow:
 
 ---
 
+### How to Run Locally
+Prerequisites
+**Docker & Docker Compose**
+**Java 17+**
+**Maven 3.8+**
+
+Step-by-Step Setup
+**Build the Microservices:**
+From the root directory, run the build script to compile the JARs, build and run the container:
+```
+chmod +x docker.sh
+./docker.sh
+```
+
+```
+docker compose up -d
+docker compose ps
+```
+
 ## Architecture
+Order Service
+     │
+     ▼
+Saga Orchestrator
+     │
+  ┌───────┬────────┬────────┐
+  ▼       ▼        ▼        ▼
+Payment Inventory Notification 
+Service Service Service 
 
 - **Pattern:** Choreographed, event-driven pipeline
 - **Transport:** Apache Kafka
@@ -32,9 +64,6 @@ The project simulates a simplified order-to-payment workflow:
     - Orders → PostgreSQL
     - Products / Stocks → MySQL
     - Notifications / audit → MongoDB
-
-See `/diagrams/architecture.drawio` for the visual.
-
 ---
 
 ## Services
@@ -50,7 +79,26 @@ See `/diagrams/architecture.drawio` for the visual.
 
 ---
 
-## Architecture Diagram
-Create this in **draw.io / Excalidraw**:
+## Order Created (Sent to INVENTORY_CHECK_TOPIC)
+JSON
+```
+{
+  "orderId": "550e8400-e29b-41d4-a716-446655440000",
+  "userId": "user_99",
+  "variantProductId": 28,
+  "quantity": 2,
+  "totalPrice": 150.50
+}
+
+```
+## Payment Requested (Sent to PAYMENT_REQUEST_TOPIC)
+```
+
+{
+"orderId": "550e8400-e29b-41d4-a716-446655440000",
+"status": "STOCK_RESERVED",
+"amount": 150.50
+}
+```
 
 

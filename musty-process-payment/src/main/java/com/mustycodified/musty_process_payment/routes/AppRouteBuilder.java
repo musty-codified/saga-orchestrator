@@ -20,7 +20,7 @@ public class AppRouteBuilder extends RouteBuilder {
     @Value("${server.port:8080}")
     private int serverPort;
 
-    @Value("${camel.component.kafka.brokers}")
+    @Value("${spring.kafka.bootstrap-servers}")
     private String kafkaBrokerUrl;
 
     @Override
@@ -54,7 +54,7 @@ public class AppRouteBuilder extends RouteBuilder {
     private void configureRest() {
         // Simulate Successful Payment
         from("direct:payment-success")
-                .log(LoggingLevel.INFO, "Processing payment..")
+                .log(LoggingLevel.INFO, "Processing payment...")
                 .process(exchange -> {
                     String transactionId = UUID.randomUUID().toString();
                     exchange.getIn().setBody(Map.of(
@@ -89,40 +89,33 @@ public class AppRouteBuilder extends RouteBuilder {
         from("kafka:PAYMENT_REQUEST_TOPIC?brokers="+kafkaBrokerUrl+"&groupId=payment-service")
                 .routeId("PaymentInitiatedEvent")
                 .process(exchange -> {
-                    UUID transactionReference = UUID.randomUUID();
-                    exchange.getIn().setHeader("transactionReference", transactionReference);
-                    log.info("Generated Transaction Reference: {}", transactionReference);
+                    UUID paymentReference = UUID.randomUUID();
+                    exchange.getIn().setHeader("payment_reference", paymentReference);
+                    log.info("Generated payment reference: {}", paymentReference);
                     String orderId = exchange.getIn().getHeader("orderId", String.class);
                     String userId = exchange.getIn().getHeader("userId", String.class);
                     String amountStr = exchange.getIn().getHeader("totalPrice", String.class);
                     Integer amount = (amountStr != null && !amountStr.isEmpty()) ? Integer.parseInt(amountStr) : 0;
-                    log.info("Forwarding to Payment → orderId: {}, userId: {}, amount: {}", orderId, userId, amount);
-
-                    if (orderId == null || userId == null) {
-                        throw new IllegalArgumentException("Missing required payment headers");
-                    }
 
                     // Set headers Before SQL insertion
-                    exchange.getIn().setHeader("transactionReference", transactionReference);
+                    exchange.getIn().setHeader("payment_reference", paymentReference);
                     exchange.getIn().setHeader("orderId", orderId);
                     exchange.getIn().setHeader("userId", userId);
                     exchange.getIn().setHeader("amount", amount);
                 })
-                .log(LoggingLevel.INFO, "Processing payment → OrderID: ${header.orderId}")
+                .log(LoggingLevel.INFO, "Logging transaction in DB for order → OrderID: ${header.orderId}")
 
-                // Store payment transaction
-                .to("sql:INSERT INTO payments (payment_id, order_id, user_id, amount, status) " +
-                        "VALUES (CAST(:#transactionReference AS UUID), CAST(:#orderId AS UUID), :#userId, :#amount, 'PENDING')?dataSource=#dataSource")
+                .to("sql:INSERT INTO payments (payment_reference, order_id, user_id, amount, status) " +
+                        "VALUES (CAST(:#payment_reference AS UUID), CAST(:#orderId AS UUID), :#userId, :#amount, 'PENDING')?dataSource=#postgresDataSource")
 
-                // Call Mock Payment Gateway
+                .log(LoggingLevel.INFO, "Calling Mock Payment Gateway")
                 .to("direct:payment-success")
-                .log(LoggingLevel.WARN, "Payment processing successful...")
 
-                // Update payment status in database
-                .to("sql:UPDATE payments SET status='SUCCESS' WHERE payment_id=:#transactionReference")
+                .log(LoggingLevel.INFO, "Update payment status in database")
+                .to("sql:UPDATE payments SET status='SUCCESS' WHERE payment_reference=:#payment_reference")
                 .log("Raw message body: ${body}")
                 .marshal().json(JsonLibrary.Jackson)
-                // Emit payment status event
+                .log(LoggingLevel.INFO, "Emit payment status event")
                 .to("kafka:PAYMENT_STATUS_TOPIC?brokers=" + kafkaBrokerUrl);
 
     }

@@ -18,13 +18,13 @@ public class DataSourceConfig {
     @Primary
     @Bean(name = "mySqlDataSource")
     @ConfigurationProperties(prefix = "spring.mysql.datasource")
-    public static DataSource setupMySqlDataSource() {
+    public DataSource setupMySqlDataSource() {
         return DataSourceBuilder.create().build();
     }
 
     @Bean(name = "postgresDataSource")
     @ConfigurationProperties(prefix = "spring.postgres.datasource")
-    public static DataSource setupPgDataSource() {
+    public DataSource setupPgDataSource() {
         return DataSourceBuilder.create().build();
 
     }
