@@ -30,14 +30,19 @@ Solution: implement the **Saga Pattern**.
 ---
 
 ### How to Run Locally
-Prerequisites
+
+## Prerequisites
 **Docker & Docker Compose**
+
 **Java 17+**
+
 **Maven 3.8+**
 
-Step-by-Step Setup
+Step-by-Step Setup:
+
 **Build the Microservices:**
-From the root directory, run the build script to compile the JARs, build and run the container:
+
+From the root directory, run the build script to compile the JARs, build and run the containers:
 ```
 chmod +x docker.sh
 ./docker.sh
