@@ -2,13 +2,13 @@
 Microservices often require distributed transactions across multiple services.
 Traditional database transactions fail because:
 
-**services are independent**
+**Services are independent**
 
-**network failures happen**
+**Network failures happen**
 
-**partial success must be compensated**
+**Partial success must be compensated**
 
-Solution: implement the **Saga Pattern**.
+**Solution**: implement the **Saga Pattern**.
 
 ### Key Technologies
 | Category | Stack                                                        |

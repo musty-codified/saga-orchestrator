@@ -147,7 +147,7 @@ public class AppRouteBuilder extends RouteBuilder {
                     String userId = exchange.getIn().getHeader("userId", String.class);
                     BigDecimal amountStr = exchange.getIn().getHeader("totalPrice", BigDecimal.class);
 
-                    // Set headers Before publishing Kafka Message to Payment consumer
+                    // Set headers Before publishing Kafka Message to Payment Service
                     exchange.getIn().setHeader("orderId", orderId);
                     exchange.getIn().setHeader("userId", userId);
                     exchange.getIn().setHeader("totalPrice", amountStr);
@@ -167,12 +167,6 @@ public class AppRouteBuilder extends RouteBuilder {
                     exchange.getIn().setHeader("orderId", orderIdStr);
                     log.info("Updating order status in postgres → orderId: {}", orderIdStr);
                 })
-//                .errorHandler(defaultErrorHandler()
-//                        .maximumRedeliveries(3)
-//                        .redeliveryDelay(1000)
-//                        .logRetryAttempted(true)
-//                        .useExponentialBackOff()
-//                        .retryAttemptedLogLevel(LoggingLevel.WARN))
                 // Update Order Status in Database
                 .to("sql:UPDATE orders SET status='PAID' WHERE order_id = :#orderId?datasource=#postgresDataSource")
                 .log(LoggingLevel.INFO, "Order status updated to PAID.");
