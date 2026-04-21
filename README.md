@@ -32,15 +32,15 @@ Traditional database transactions fail because:
 ### How to Run Locally
 
 ## Prerequisites
-**Docker & Docker Compose**
+- **Docker & Docker Compose**
 
-**Java 17+**
+- **Java 17+**
 
-**Maven 3.8+**
+- **Maven 3.8+**
 
-Step-by-Step Setup:
+- Step-by-Step Setup:
 
-**Build the Microservices:**
+- **Build the Microservices:**
 
 From the root directory, run the build script to compile the JARs, build and run the containers:
 ```
