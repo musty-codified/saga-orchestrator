@@ -3,25 +3,23 @@ Microservices often require distributed transactions across multiple services.
 Traditional database transactions fail because:
 
 - **Services are independent**
-
 - **Network failures happen**
-
 - **Partial success must be compensated**
 
-**Solution**: implement the **Saga Pattern**.
+**Solution**: implement the **choreography-based Saga Pattern**.
 
 ### Key Technologies
 | Category | Stack                                                        |
 |-----------|--------------------------------------------------------------|
 | Integration | Apache Camel (v4.x)                                          |
 | Messaging | Apache Kafka                                                 |
-| Persistence | PostgreSQL (Orders), MySQL (Inventory), MongoDB (Notifications) |
+| Persistence | Postgres (Orders), MySQL (Inventory), MongoDB (Notifications) |
 | Runtime | Spring Boot, Docker                                          |
-| Patterns | Idempotency, Saga Choreography, DLQ                          |
+| Patterns | Idempotency, Saga, Choreography, DLQ                         |
 
 ### The Workflow:
 1. **Order Service** (REST) receives an order → persists it as `PENDING` → publishes to Kafka (`INVENTORY_CHECK_TOPIC`)
-2. **Inventory Service** consumes the event → checks stock in MySQL →
+2. **Inventory Service** consumes the event → checks stock in Product Catalog (MySQL) →
     - if in stock → publishes to `PAYMENT_REQUEST_TOPIC`
     - if out of stock → updates order to `DECLINED` (Postgres)
 3. **Payment Service** consumes `PAYMENT_REQUEST_TOPIC` → simulates payment → saves to DB → publishes to `PAYMENT_STATUS_TOPIC`
@@ -38,7 +36,7 @@ Traditional database transactions fail because:
 
 - **Maven 3.8+**
 
-- Step-by-Step Setup:
+Step-by-Step Setup:
 
 - **Build the Microservices:**
 

@@ -9,8 +9,6 @@ services:
     ports:
       - "9086:8086"
     depends_on:
-      inventory-db:
-        condition: service_healthy
       order-db:
         condition: service_started
       kafka:
@@ -21,7 +19,25 @@ services:
       - SPRING_POSTGRES_DATASOURCE_JDBC_URL=jdbc:postgresql://order-db:5432/orders_db
       - SPRING_POSTGRES_DATASOURCE_USERNAME=saga
       - SPRING_POSTGRES_DATASOURCE_PASSWORD=papi
-      - SPRING_MYSQL_DATASOURCE_JDBC_URL=jdbc:mysql://inventory-db:3306/db_create_order?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    restart: on-failure
+
+  inventory-service:
+    container_name: inventory-service
+    build:
+      context: ./musty-inventory-service
+      dockerfile: Dockerfile
+    ports:
+      - "9085:8085"
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - saga-net
+    environment:
+      - SPRING_MYSQL_DATASOURCE_JDBC_URL=jdbc:mysql://inventory-db:3306/inventory_db?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
       - SPRING_MYSQL_DATASOURCE_PASSWORD=papimaciano
       - SPRING_MYSQL_DATASOURCE_USERNAME=root
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
@@ -76,19 +92,21 @@ services:
       - "5433:5432"
     volumes:
       - order_data:/var/lib/postgresql/data
+      - ./musty-create-order/db-init:/docker-entrypoint-initdb.d:ro
 
   inventory-db:
     container_name: inventory-db
     image: mysql:8.0
     environment:
       - MYSQL_ROOT_PASSWORD=papimaciano
-      - MYSQL_DATABASE=db_create_order
+      - MYSQL_DATABASE=inventory_db
     networks:
       - saga-net
     ports:
       - "3307:3306"
     volumes:
       - inventory_data:/var/lib/mysql
+      - ./musty-inventory-service/db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost || exit 1"]
       interval: 5s
@@ -108,6 +126,7 @@ services:
       - "5434:5432"
     volumes:
       - payment_data:/var/lib/postgresql/data
+      - ./musty-process-payment/db-init:/docker-entrypoint-initdb.d:ro
 
   # --- INFRASTRUCTURE (KAFKA KRAFT) ---
   kafka:
@@ -118,7 +137,6 @@ services:
     ports:
       - "29092:29092"
     environment:
-      # KRaft settings
       - KAFKA_NODE_ID=1
       - KAFKA_PROCESS_ROLES=controller,broker
       - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
@@ -126,12 +144,12 @@ services:
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
-      # Ensure a cluster ID is set
       - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
       - CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
     volumes:
       - kafka_data:/var/lib/kafka/data
+
 networks:
   saga-net:
     driver: bridge

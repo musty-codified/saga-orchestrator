@@ -6,9 +6,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@ConfigurationProperties("zenz-create-order")
+// @Component — disabled: legacy Zenz framework config, no active code references this bean
+@ConfigurationProperties("")
 @Data
-@Component
 public class AppConfiguration {
 
     private HeaderValuesConfig headerValues;

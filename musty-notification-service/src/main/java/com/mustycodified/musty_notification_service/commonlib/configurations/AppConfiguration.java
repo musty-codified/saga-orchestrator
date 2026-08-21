@@ -6,9 +6,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+// @Component — disabled: legacy Zenz framework config, no active code references this bean
 @ConfigurationProperties("zenz-ng-get-unit-of-measurements")
 @Data
-@Component
 public class AppConfiguration {
 
     private HeaderValuesConfig headerValues;

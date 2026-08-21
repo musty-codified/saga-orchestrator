@@ -6,7 +6,6 @@ import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 
 import org.apache.camel.model.dataformat.JsonLibrary;
-import org.apache.camel.model.rest.RestBindingMode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -15,9 +14,11 @@ import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
-public class AppRouteBuilder extends RouteBuilder {
+public class NotificationRouteBuilder extends RouteBuilder {
     @Value("${server.port:8080}")
     private int serverPort;
+
+    // This service only consumes Kafka topics, no HTTP endpoints are exposed
 
     @Override
     public void configure() throws Exception {
@@ -36,16 +37,7 @@ public class AppRouteBuilder extends RouteBuilder {
     }
 
     private void configureRest() {
-        restConfiguration()
-                .component("servlet")
-                .host("0.0.0.0")
-                .port(serverPort)
-                .bindingMode(RestBindingMode.json)
-                .dataFormatProperty("prettyPrint", "true")
-                .corsAllowCredentials(true)
-                .enableCORS(true);
-
-        from("kafka:PAYMENT_STATUS_TOPIC?brokers={{spring.kafka.bootstrap-servers}}")
+        from("kafka:PAYMENT_SUCCESS_TOPIC")
                 .routeId("NotificationRequestedEvent")
                 .log(LoggingLevel.INFO, "Sending payment confirmation for OrderID: ${header.orderId}")
                 .process(exchange -> {

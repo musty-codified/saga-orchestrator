@@ -14,7 +14,6 @@ public class RequestPayload implements Serializable {
 	@Serial
 	private static final long serialVersionUID = 7868310611900741033L;
 
-
 	@NotNull
 	private BigDecimal totalPrice;
 	@NotNull
@@ -22,12 +21,10 @@ public class RequestPayload implements Serializable {
 
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("RequestPayload [");
-		builder.append("totalPrice=").append(totalPrice);
-		builder.append("quantity=").append(quantity).append(", ");
-		builder.append("]");
-		return builder.toString();
+        return "RequestPayload [" +
+                "totalPrice=" + totalPrice +
+                "quantity=" + quantity + ", " +
+                "]";
 	}
 
 

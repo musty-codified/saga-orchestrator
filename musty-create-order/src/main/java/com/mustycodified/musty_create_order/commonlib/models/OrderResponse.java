@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 public class OrderResponse {
 
     @NotNull
-    private String id;
+    private String orderId;
 
     @NotNull
     private String uid;
@@ -29,15 +29,13 @@ public class OrderResponse {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("OrderResponse [");
-        builder.append("id=").append(id);
-        builder.append("uid=").append(uid).append(", ");
-        builder.append("totalPrice=").append(totalPrice).append(", ");
-        builder.append("quantity=").append(quantity).append(", ");
-        builder.append("status=").append(status);
-        builder.append("]");
-        return builder.toString();
+        return "OrderResponse [" +
+                "id=" + orderId +
+                "uid=" + uid + ", " +
+                "totalPrice=" + totalPrice + ", " +
+                "quantity=" + quantity + ", " +
+                "status=" + status +
+                "]";
     }
 
 }

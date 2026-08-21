@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-@Component
+// @Component — disabled: payment service exposes no REST endpoints, only Kafka consumers
 public class RestConfiguration extends RouteBuilder {
 
     @Value("${camel.rest.component:servlet}")

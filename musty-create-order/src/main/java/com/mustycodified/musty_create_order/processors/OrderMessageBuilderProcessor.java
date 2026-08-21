@@ -6,24 +6,29 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
+import java.util.UUID;
 
 @Slf4j
 @Component
-public class OrderCreationProcessor implements Processor {
+public class OrderMessageBuilderProcessor implements Processor {
     @Override
     public void process(Exchange exchange) throws Exception {
-        String userId = exchange.getIn().getHeader("userId", String.class);
+        String rawUserId = exchange.getIn().getHeader("userId", String.class);
         Integer variantProductId = exchange.getIn().getHeader("variantProductId", Integer.class);
         RequestPayload orderRequest = exchange.getIn().getBody(RequestPayload.class);
-        BigDecimal totalPrice = orderRequest.getTotalPrice();
-        Integer quantity = orderRequest.getQuantity();
-        if (userId == null || variantProductId == null) {
+
+        if (rawUserId == null || variantProductId == null) {
             throw new IllegalArgumentException("Missing required path parameters");
         }
 
-        exchange.getIn().setHeader("totalPrice", totalPrice);
-        exchange.getIn().setHeader("quantity", quantity);
+        UUID orderId = UUID.randomUUID();
+        int userId = Integer.parseInt(rawUserId);
+
         exchange.getIn().setHeader("userId", userId);
+        exchange.getIn().setHeader("variantProductId", variantProductId);
+        exchange.getIn().setHeader("orderId", orderId);
+        exchange.getIn().setHeader("totalPrice", orderRequest.getTotalPrice());
+        exchange.getIn().setHeader("quantity", orderRequest.getQuantity());
     }
+
 }

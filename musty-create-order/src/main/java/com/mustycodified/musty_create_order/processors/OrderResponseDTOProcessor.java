@@ -15,11 +15,11 @@ public class OrderResponseDTOProcessor implements Processor {
         Integer quantity = exchange.getIn().getHeader("quantity", Integer.class);
 
         OrderResponse dto = new OrderResponse();
-        dto.setId(orderId);
+        dto.setOrderId(orderId);
         dto.setUid(userId);
         dto.setQuantity(quantity);
         dto.setTotalPrice(totalPrice);
-        dto.setStatus("PENDING");
+        dto.setStatus("INITIATED");
         exchange.getIn().setBody(dto);
     }
 }

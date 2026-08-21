@@ -21,12 +21,10 @@ public class ResponsePayload implements Serializable {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("ResponsePayload [success=");
-        builder.append(", data=");
-        builder.append(data);
-        builder.append("]");
-        return builder.toString();
+        return "ResponsePayload [success=" +
+                ", data=" +
+                data +
+                "]";
     }
 
 }
