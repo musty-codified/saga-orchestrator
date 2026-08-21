@@ -6,20 +6,20 @@ Traditional database transactions fail because:
 - **Network failures happen**
 - **Partial success must be compensated**
 
-**Solution**: implement the **choreography-based Saga Pattern**.
+**Solution**: implement the **Transactional Outbox Saga Pattern**.
 
 ### Key Technologies
-| Category | Stack                                                        |
-|-----------|--------------------------------------------------------------|
-| Integration | Apache Camel (v4.x)                                          |
-| Messaging | Apache Kafka                                                 |
-| Persistence | Postgres (Orders), MySQL (Inventory), MongoDB (Notifications) |
-| Runtime | Spring Boot, Docker                                          |
-| Patterns | Idempotency, Saga, Choreography, DLQ                         |
+| Category | Stack                                                                 |
+|-----------|-----------------------------------------------------------------------|
+| Integration | Apache Camel (v4.x)                                                   |
+| Messaging | Apache Kafka                                                          |
+| Persistence | Postgres (Order/payments), MySQL (Inventory), MongoDB (Notifications) |
+| Runtime | Spring Boot, Docker                                                   |
+| Patterns | Idempotency, Saga, Transactional Outbox, DLQ                          |
 
 ### The Workflow:
-1. **Order Service** (REST) receives an order → persists it as `PENDING` → publishes to Kafka (`INVENTORY_CHECK_TOPIC`)
-2. **Inventory Service** consumes the event → checks stock in Product Catalog (MySQL) →
+1. **Order Service** (REST) receives an order → persists it as `PENDING` → publishes to Kafka (`INVENTORY_RESERVE_TOPIC`)
+2. **Inventory Service** consumes the event → reserves Product in Catalog (MySQL) →
     - if in stock → publishes to `PAYMENT_REQUEST_TOPIC`
     - if out of stock → updates order to `DECLINED` (Postgres)
 3. **Payment Service** consumes `PAYMENT_REQUEST_TOPIC` → simulates payment → saves to DB → publishes to `PAYMENT_STATUS_TOPIC`
@@ -31,9 +31,7 @@ Traditional database transactions fail because:
 
 ## Prerequisites
 - **Docker & Docker Compose**
-
 - **Java 17+**
-
 - **Maven 3.8+**
 
 Step-by-Step Setup:
@@ -42,17 +40,11 @@ Step-by-Step Setup:
 
 From the root directory, run the build script to compile the JARs, build and run the containers:
 ```
-chmod +x docker.sh
-./docker.sh
+chmod +x run_docker-compose.sh
+./run_docker-compose.sh
 ```
-
-```
-docker compose up -d
-docker compose ps
-```
-
 ## Architecture
-- **Pattern:** Choreographed, event-driven pipeline
+- **Pattern:** Transactional outbox, event-driven pipeline
 - **Transport:** Apache Kafka
 - **Orchestration:** Apache Camel routes in each microservice
 
@@ -69,7 +61,7 @@ docker compose ps
 
 ---
 
-## Order Created (Sent to INVENTORY_CHECK_TOPIC)
+## Order Created (Sent to INVENTORY_RESERVE_TOPIC)
 ``` json
 {
   "orderId": "550e8400-e29b-41d4-a716-446655440000",
